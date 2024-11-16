@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 pd.set_option('display.max_colwidth',None)
 
-sys.path.append('/Users/burit/Documents/VisualStudioCode/GIT/realestate.co.nz')
+sys.path.append('/Users/burit/Documents/VisualStudioCode/GIT/property_tracker')
 
 import sitemap
 
