@@ -1,4 +1,7 @@
 sitemap_url: "https://www.realestate.co.nz/sitemap.xml"
 property_table: "C:/Users/burit/Documents/VisualStudioCode/DATA/Property.csv"
 valuation_table: "C:/Users/burit/Documents/VisualStudioCode/DATA/Valuation.csv"
+sale_table: "C:/Users/burit/Documents/VisualStudioCode/DATA/Sale.csv"
+region_table: "C:/Users/burit/Documents/VisualStudioCode/DATA/Region.csv"
 properties_url: "https://platform.realestate.co.nz/search/v1/properties/"
+sitemap_table: "C:/Users/burit/Documents/VisualStudioCode/DATA/categorized_sitemap.csv"

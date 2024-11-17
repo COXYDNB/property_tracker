@@ -3,7 +3,7 @@ import pandas as pd
 import sys
 import re
 
-sys.path.append('/Users/burit/Documents/VisualStudioCode/GIT/property_tracker')
+#sys.path.append('/Users/burit/Documents/VisualStudioCode/GIT/property_tracker')
 from settings import settings
 
 sitemap_url = settings.sitemap_url
@@ -137,7 +137,7 @@ def get_sitemap():
     sitemap_df = sitemap_df[~sitemap_df['ID'].isna()]
 
     # Save the cleaned and categorized DataFrame to CSV
-    sitemap_df.to_csv('C:/Users/burit/Documents/VisualStudioCode/DATA/categorized_sitemap.csv', index=False)
+    sitemap_df.to_csv(settings.sitemap_table, index=False)
 
     return sitemap_df
 

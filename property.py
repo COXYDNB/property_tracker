@@ -11,61 +11,63 @@ import random
 import time
 from tqdm import tqdm
 
-BASE_URL = settings.properties_url
-
 #Remove this later on
-sitemap_df = sitemap.get_sitemap()
-
-# get existing tables
-Property = pd.read_csv(settings.property_table)
-Valuation = pd.read_csv(settings.valuation_table)
+#sitemap_df = sitemap.get_sitemap()
 
 # Get the property IDs that are 'sold' from sitemap_df
-sitemap_sold_property_IDs = sitemap_df[sitemap_df['listing_type'] == "sold"]['ID']
+#sitemap_sold_property_IDs = sitemap_df[sitemap_df['listing_type'] == "sold"]['ID']
 
 # Remove unnecessary filters later
-sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['property_type'] == "residential"]
-sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['region'] == "central-otago-lakes-district"]
+#sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['property_type'] == "residential"]
+#sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['region'] == "bay-of-plenty"]
 
 # Convert sitemap_sold_property_IDs into a DataFrame with the column 'id' for merging
-sitemap_sold_property_IDs_df = sitemap_sold_property_IDs.to_frame(name='id')
+#sitemap_sold_property_IDs_df = sitemap_sold_property_IDs.to_frame(name='id')
 
 # Perform an outer join
-Property_IDs_Dates = pd.merge(Property[['id', 'last_update']], sitemap_sold_property_IDs_df, on='id', how='outer')
+#Property_IDs_Dates = pd.merge(Property[['id', 'last_update']], sitemap_sold_property_IDs_df, on='id', how='outer')
 
 # Replace null (NaT) values in 'last_update' with the default date '1900-01-01'
-Property_IDs_Dates['last_update'] = Property_IDs_Dates['last_update'].fillna(pd.to_datetime('1900-01-01'))
+#Property_IDs_Dates['last_update'] = Property_IDs_Dates['last_update'].fillna(pd.to_datetime('1900-01-01'))
 
 # Convert 'last_update' to datetime for comparison
-Property_IDs_Dates['last_update'] = pd.to_datetime(Property_IDs_Dates['last_update'])
+#Property_IDs_Dates['last_update'] = pd.to_datetime(Property_IDs_Dates['last_update'])
 
 # Get the date of one week ago from today
-one_month_ago = datetime.today() - timedelta(weeks=4)
+#FIND A GOOD WAY TO KMOW PROPERTIES THAT HAVE JUST BEEN UPDATED RECENTLY
+#one_month_ago = datetime.today() - timedelta(weeks=4)
 
-x1 = Property_IDs_Dates.shape
+#x1 = Property_IDs_Dates.shape
 
 # Filter properties that have not been updated in the last week
-Properties_not_updated_recently = Property_IDs_Dates[Property_IDs_Dates['last_update'] < one_month_ago]
+#Properties_not_updated_recently = Property_IDs_Dates[Property_IDs_Dates['last_update'] < one_month_ago]
 
-x2 = Properties_not_updated_recently.shape
+#x2 = Properties_not_updated_recently.shape
 
-print(f'{x1[0]} properties to begin with...')
-print(f'{x2[0]} properties to update...')
+#print(f'{x1[0]} properties to begin with...')
+#print(f'{x2[0]} properties to update...')
 
-property_IDs_to_update = Properties_not_updated_recently['id']
+#property_IDs_to_update = Properties_not_updated_recently['id']
 
-headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.0.0"}
+#headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.0.0"}
 
 # Sample user agents
-user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0"
-]
+#user_agents = [
+#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
+#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0"
+#]
 
-def get_updated_data(property_IDs_to_update, BASE_URL, headers):
+def get_updated_data(property_IDs_to_update, headers, user_agents):
+
+    # get existing tables
+    Property = pd.read_csv(settings.property_table)
+    Valuation = pd.read_csv(settings.valuation_table)
+    Sale = pd.read_csv(settings.sale_table)
+
     new_property_data = []  # List to store property data DataFrames
     new_valuation_data = []  # List to store valuation data DataFrames
+    new_sale_data = [] # List to store valuation data DataFrames
 
     retries = 3  # Number of retries for failed requests
     backoff = 2  # Exponential backoff factor
@@ -78,7 +80,7 @@ def get_updated_data(property_IDs_to_update, BASE_URL, headers):
                 headers['User-Agent'] = random.choice(user_agents)
 
                 # Send the request
-                resp = requests.get(f'{BASE_URL}{ID}', headers=headers)
+                resp = requests.get(f'{settings.properties_url}{ID}', headers=headers)
 
                 # Check for response status
                 if resp.status_code == 200:
@@ -161,13 +163,23 @@ def get_updated_data(property_IDs_to_update, BASE_URL, headers):
                     # Append valuation data as DataFrame to the list
                     new_valuation_data.append(pd.DataFrame([val_data]))  # Append a single-row DataFrame
 
+            if data['data']['attributes'].get('sales-history', None):
+                for sale in data['data']['attributes']['sales-history']:
+                    sale_data = {}
+                    sale_data['id'] = ID
+                    sale_data['sale_date'] = sale.get('sale-date', None)
+                    sale_data['net_sale_price'] = sale.get('net-sale-price', None)
+
+                    # Append sale data as DataFrame to the list
+                    new_sale_data.append(pd.DataFrame([sale_data]))  # Append a single-row DataFrame
+
         except Exception as e:
             print(f"Error processing data for ID {ID}: {e}")
             print(f"Exiting function due to error with ID {ID}.")
             return  # Exit the function
 
         # Optional: Pause between requests to reduce server load
-        time.sleep(random.uniform(1, 3))  # Random sleep between 1-3 seconds
+        time.sleep(random.uniform(0.8, 2))  # Random sleep between 1-3 seconds
 
     # Concatenate the list of DataFrames into one large DataFrame for property data
     new_property_data = pd.concat(new_property_data, ignore_index=True) if new_property_data else pd.DataFrame()
@@ -175,35 +187,37 @@ def get_updated_data(property_IDs_to_update, BASE_URL, headers):
     # Concatenate the list of DataFrames into one large DataFrame for valuation data
     new_valuation_data = pd.concat(new_valuation_data, ignore_index=True) if new_valuation_data else pd.DataFrame()
 
-    return new_property_data, new_valuation_data
+    new_sale_data = pd.concat(new_sale_data, ignore_index = True) if new_sale_data else pd.DataFrame()
 
+    # Append new data to the existing Property table
+    Property = pd.concat([Property, new_property_data], ignore_index=True)
+
+    # Deduplicate based on 'id', keeping the last occurrence (new data overwrites old data)
+    Property = Property.drop_duplicates(subset='id', keep='last')
+
+    # Append new data to the existing Valuation table
+    Valuation = pd.concat([Valuation, new_valuation_data], ignore_index=True)
+
+    # Deduplicate based on 'id', 'date' keeping the last occurrence (new data overwrites old data)
+    Valuation = Valuation.drop_duplicates(subset=['id', 'estimated_date'], keep='last')
+
+    # Append new data to the existing Sale table
+    Sale = pd.concat([Sale, new_sale_data], ignore_index=True)
+
+    # Deduplicate based on 'id', 'date' keeping the last occurrence (new data overwrites old data)
+    Sale = Sale.drop_duplicates(subset=['id', 'sale_date'], keep='last')
+
+    # Save the DataFrame to a CSV file
+    Property.to_csv(settings.property_table, index=False)
+
+    Valuation.to_csv(settings.valuation_table, index=False)
+
+    Sale.to_csv(settings.sale_table, index=False)
+
+    return new_property_data, new_valuation_data, new_sale_data
 
 # Call the function
-new_property_data, new_valuation_data = get_updated_data(property_IDs_to_update, BASE_URL, headers)
-
-
-# Append new data to the existing Property table
-Property = pd.concat([Property, new_property_data], ignore_index=True)
-
-# Deduplicate based on 'id', keeping the last occurrence (new data overwrites old data)
-Property = Property.drop_duplicates(subset='id', keep='last')
-
-
-
-
-
-
-
-#Update Property table
-Property = Property.append(new_property_data)
-
-# Save the DataFrame to a CSV file
-new_property_data.to_csv('C:/Users/burit/Documents/VisualStudioCode/DATA/Property.csv', index=False)
-
-new_valuation_data.to_csv('C:/Users/burit/Documents/VisualStudioCode/DATA/Valuation.csv', index=False)
-
-
-
+#new_property_data, new_valuation_data, new_sale_data = get_updated_data(property_IDs_to_update, settings.properties_url, headers)
 
 
 

@@ -1,25 +1,67 @@
-import pandas as pd
-import sys
-pd.set_option('display.max_colwidth',None)
+# import packages and modules --------------------------------------------------------------
 
-sys.path.append('/Users/burit/Documents/VisualStudioCode/GIT/property_tracker')
-
+from settings import settings
 import sitemap
+import pandas as pd
+import requests
+from curl_cffi import requests as cureq
+from pydantic import BaseModel
+from rich import print
+from datetime import datetime, timedelta
+from requests.exceptions import RequestException
+import random
+import time
+from tqdm import tqdm
+import region
+import property
+import id
 
-# Get SiteMap DF and write to csv 'C:/Users/burit/Documents/VisualStudioCode/DATA/categorized_sitemap.csv'
-urls = sitemap.get_sitemap()
+# API request setup ------------------------------------------------------------------------
 
-testurl = urls.loc[urls['listing_type'] == 'just_sold', 'url'].tail()
-len(urls.loc[urls['listing_type'] == 'just_sold'])
+headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.0.0"}
 
+# Sample user agents
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0"
+]
 
-## Scrape for prices, rent prices, lease prices, bedrooms, bathrooms, region, sub-region, city, street, sold date, car parking, floor space m**2, property area **2 (size), property history?
+# GET SITEMAP, Property --------------------------------------------------------------------
 
-## Need to record IDs, understand that properties are listed more than once, e.g. sold and then rented, sold multiple times.
+sitemap_df = sitemap.get_sitemap()
 
-## Store property data which can be updated over time, to maintain history - how do we model this??
+# REFRESH REGION CODES ---------------------------------------------------------------------
 
-## Some kind of API to get location data e.g. latitude longitude, what kind of spatial data is needed for powerBI / GIS maps??
-    ## https://addressfinder.nz/api/nz/location/metadata/
+#region_codes = region.get_region_IDs(headers, user_agents)
+#region_codes.to_csv(settings.region_table, index = False)
 
-## FUTURE - model time series - regional mean sale price by factors
+# READ STORED REGION CODES -----------------------------------------------------------------
+
+region_codes = pd.read_csv(settings.region_table)
+# remove 'confidential' region
+region_codes = region_codes[region_codes['region'] != "Confidential"]
+
+# Regional FULL LOAD ----------------------------------------------------------------------- # comment out this section once a full load has been completed for each region
+# Change this to choose which regions to update
+RegionNames = region_codes['region_slug'].iloc[0:2]
+
+property_IDs_to_update = id.get_all_properties_by_region(sitemap_df, RegionNames, headers, user_agents)
+
+# retrieve and load the property information for the properties that were recently updated
+property.get_updated_data(property_IDs_to_update, headers, user_agents)
+
+# GET DATA FOR NEWLY UPDATED PROPERTIRES ---------------------------------------------------
+# Define search for finding newly updated properties
+regionIDs = region_codes['regionID'].iloc[0:2]
+start_date = datetime.today() - timedelta(weeks=1)
+start_date = start_date.strftime('%Y-%m-%d')
+page_limit = 1000
+
+# Get properties that were recently updated, and not loaded in the last week
+properties_to_update = id.get_recently_updated_propeties(regionIDs, start_date, page_limit, headers, user_agents)
+# get property IDs of properties that were recently updated
+property_IDs_to_update = properties_to_update['propertyID']
+
+# retrieve and load the property information for the properties that were recently updated
+property.get_updated_data(property_IDs_to_update, headers, user_agents)
