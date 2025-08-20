@@ -1,62 +1,13 @@
 from settings import settings
-import sitemap
 import pandas as pd
 import requests
 from curl_cffi import requests as cureq
-from pydantic import BaseModel
 from rich import print
-from datetime import datetime, timedelta
+from datetime import datetime
 from requests.exceptions import RequestException
 import random
 import time
 from tqdm import tqdm
-
-#Remove this later on
-#sitemap_df = sitemap.get_sitemap()
-
-# Get the property IDs that are 'sold' from sitemap_df
-#sitemap_sold_property_IDs = sitemap_df[sitemap_df['listing_type'] == "sold"]['ID']
-
-# Remove unnecessary filters later
-#sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['property_type'] == "residential"]
-#sitemap_sold_property_IDs = sitemap_sold_property_IDs[sitemap_df['region'] == "bay-of-plenty"]
-
-# Convert sitemap_sold_property_IDs into a DataFrame with the column 'id' for merging
-#sitemap_sold_property_IDs_df = sitemap_sold_property_IDs.to_frame(name='id')
-
-# Perform an outer join
-#Property_IDs_Dates = pd.merge(Property[['id', 'last_update']], sitemap_sold_property_IDs_df, on='id', how='outer')
-
-# Replace null (NaT) values in 'last_update' with the default date '1900-01-01'
-#Property_IDs_Dates['last_update'] = Property_IDs_Dates['last_update'].fillna(pd.to_datetime('1900-01-01'))
-
-# Convert 'last_update' to datetime for comparison
-#Property_IDs_Dates['last_update'] = pd.to_datetime(Property_IDs_Dates['last_update'])
-
-# Get the date of one week ago from today
-#FIND A GOOD WAY TO KMOW PROPERTIES THAT HAVE JUST BEEN UPDATED RECENTLY
-#one_month_ago = datetime.today() - timedelta(weeks=4)
-
-#x1 = Property_IDs_Dates.shape
-
-# Filter properties that have not been updated in the last week
-#Properties_not_updated_recently = Property_IDs_Dates[Property_IDs_Dates['last_update'] < one_month_ago]
-
-#x2 = Properties_not_updated_recently.shape
-
-#print(f'{x1[0]} properties to begin with...')
-#print(f'{x2[0]} properties to update...')
-
-#property_IDs_to_update = Properties_not_updated_recently['id']
-
-#headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.0.0"}
-
-# Sample user agents
-#user_agents = [
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0"
-#]
 
 def get_updated_data(property_IDs_to_update, headers, user_agents):
 
@@ -160,8 +111,9 @@ def get_updated_data(property_IDs_to_update, headers, user_agents):
                     val_data['value_high'] = valuation.get('value-high', None)
                     val_data['confidence_rating'] = valuation.get('confidence-rating', None)
 
-                    # Append valuation data as DataFrame to the list
-                    new_valuation_data.append(pd.DataFrame([val_data]))  # Append a single-row DataFrame
+                    # Append valuation data as DataFrame to the list if confidence is 4+
+                    if val_data['confidence_rating'] >= 4:
+                        new_valuation_data.append(pd.DataFrame([val_data]))  # Append a single-row DataFrame
 
             if data['data']['attributes'].get('sales-history', None):
                 for sale in data['data']['attributes']['sales-history']:
@@ -179,7 +131,7 @@ def get_updated_data(property_IDs_to_update, headers, user_agents):
             return  # Exit the function
 
         # Optional: Pause between requests to reduce server load
-        time.sleep(random.uniform(0.8, 2))  # Random sleep between 1-3 seconds
+        time.sleep(random.uniform(1, 3))  # Random sleep between 1-3 seconds
 
     # Concatenate the list of DataFrames into one large DataFrame for property data
     new_property_data = pd.concat(new_property_data, ignore_index=True) if new_property_data else pd.DataFrame()
@@ -215,9 +167,6 @@ def get_updated_data(property_IDs_to_update, headers, user_agents):
     Sale.to_csv(settings.sale_table, index=False)
 
     return new_property_data, new_valuation_data, new_sale_data
-
-# Call the function
-#new_property_data, new_valuation_data, new_sale_data = get_updated_data(property_IDs_to_update, settings.properties_url, headers)
 
 
 

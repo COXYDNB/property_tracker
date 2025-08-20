@@ -26,7 +26,7 @@ def get_region_IDs(headers, user_agents):
     region_codes = []
 
     # Loop through IDs
-    for ID in range(100):
+    for ID in range(200):
         search_data = {}
         # Format the URL
         URL = f'https://platform.realestate.co.nz/search/v1/properties?filter%5Bregion%5D%5B%5D={ID}&filter%5BsaleDateMin%5D={datetime.today().date().strftime("%Y-%m-%d")}'

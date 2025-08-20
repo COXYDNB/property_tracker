@@ -1,32 +1,11 @@
 from settings import settings
-import sitemap
 import pandas as pd
 import requests
 from curl_cffi import requests as cureq
-from pydantic import BaseModel
 from rich import print
 from datetime import datetime, timedelta
-from requests.exceptions import RequestException
 import random
 import time
-from tqdm import tqdm
-
-
-# REMOVE THESE LATER--------------------------
-#regionIDs = [35, 32]
-#start_date = datetime.today() - timedelta(weeks=1)
-#start_date = start_date.strftime('%Y-%m-%d')
-#page_limit = 1000
-# --------------------------------------------
-
-#headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.0.0"}
-
-# Sample user agents
-#user_agents = [
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-#    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0"
-#]
 
 def get_recently_updated_propeties(regionIDs, start_date, page_limit, headers, user_agents):
 
@@ -66,7 +45,7 @@ def get_recently_updated_propeties(regionIDs, start_date, page_limit, headers, u
             print(f"Error processing region ID {regionID}: {e}")
 
         # Optional: Pause between requests
-        time.sleep(random.uniform(0.8, 2))  # Random sleep between 0.8-2 seconds
+        time.sleep(random.uniform(1, 3))  # Random sleep between 0.8-2 seconds
 
     # Convert region codes to a DataFrame
     recently_updated_properties_df = pd.DataFrame(recently_updated_properties)
@@ -77,11 +56,17 @@ def get_recently_updated_propeties(regionIDs, start_date, page_limit, headers, u
     recently_updated_properties_df_merge = recently_updated_properties_df.merge(Property_updates, how = "left", left_on = "propertyID", right_on = "id")[['regionID', 'region', 'propertyID', 'last_update']]
 
     #Ideally, this is removed. I will need to ensure I can get a full load for each region within a week, and then can rely on the GET_UPDATED_PROPERTIES
-    recently_updated_properties_df_filtered = recently_updated_properties_df_merge[
-    pd.to_datetime(recently_updated_properties_df_merge['last_update']).dt.date < (datetime.today().date() - timedelta(weeks=1))
-    ]
+    #recently_updated_properties_df_filtered = recently_updated_properties_df_merge[
+    #pd.to_datetime(recently_updated_properties_df_merge['last_update']).dt.date < start_date
+    #]
 
-    return recently_updated_properties_df_filtered
+    #print(f'Properties to update: {recently_updated_properties_df_filtered.shape[0]}')
+
+    print(f'Properties to update: {recently_updated_properties_df_merge.shape[0]}')
+
+    #return recently_updated_properties_df_filtered
+    return recently_updated_properties_df_merge
+
 
 # test the function
 #recently_updated_properties_df = get_recently_updated_propeties(regionIDs, start_date, page_limit, headers, user_agents)
